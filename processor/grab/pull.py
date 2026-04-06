@@ -9,6 +9,8 @@ def pull_raw(url):
     parsed = urlparse(url)
     https_status = parsed.scheme == "https"
     host = parsed.netloc
+    end_of_url = parsed.params + parsed.query + parsed.fragment
+    path = parsed.path if parsed.path else "/"
 
     if https_status:
         with open(os.path.join(os.path.dirname(__file__), "info.json"), "r") as f:
@@ -28,6 +30,7 @@ def pull_raw(url):
         return response, https_status
    
     else:
+        sock = None
         try:
             with open(os.path.join(os.path.dirname(__file__), "info.json"), "r") as f:
                 info = json.load(f)
@@ -38,8 +41,9 @@ def pull_raw(url):
             logging.error(e)
             response = b"<!DOCTYPE html><html><head><title>500</title></head><body><h1>500 Internal Server Error</h1><p>Couldn't find the site you were looking for.</p></body></html>"
             return response, False
+        finally:
+            if sock:
+                sock.close()
         if "Name or service not known" in response.decode():
             logging.error("Name or service not known")
-            # For now until I implement actual rendering
-            sock.close()
         return response, False
