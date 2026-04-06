@@ -40,7 +40,6 @@ def pull_raw(url):
             return response, False
         if "Name or service not known" in response.decode():
             logging.error("Name or service not known")
-            response = b"<!DOCTYPE html><html><head><title>404</title></head><body><h1>404 Not Found</h1><p>Couldn't find the site you were looking for.</p></body></html>"
             # For now until I implement actual rendering
             sock.close()
         return response, False
