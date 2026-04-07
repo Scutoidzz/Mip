@@ -8,6 +8,17 @@ import PyQt6.QtGui as QtGui
 
 from processor.grab import pull
 
+class FetchWorker(QtCore.QThread):
+    finished = QtCore.pyqtSignal(bytes)
+    
+    def __init__(self, url):
+        super().__init__()
+        self.url = url
+    
+    def run(self):
+        response, _ = pull.pull_raw(self.url)
+        self.finished.emit(response)
+
 class Home(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -15,12 +26,24 @@ class Home(QtWidgets.QWidget):
     
     def initUI(self):
         self.draw_tab_strip()
+        self.thread = QtCore.QThread()
+        self.thread.start()
 
     def load_url(self):
         url = self.search_bar.text()
         if url:
-            response, _ = pull.pull_raw(url)
-            self.content_view.setText(response.decode("utf-8", errors="ignore"))
+            self.content_view.setText("Loading...")
+            self.worker = FetchWorker(url)
+            self.worker.moveToThread(self.thread)
+            self.worker.finished.connect(self.display_response)
+            self.worker.start()
+
+    def display_response(self, response):
+        self.content_view.setText(response.decode("utf-8", errors="ignore"))
+
+    def go_home(self):
+        self.search_bar.setText("")
+        self.content_view.setText("")
 
     def draw_tab_strip(self):
         main_layout = QtWidgets.QHBoxLayout()
@@ -35,7 +58,7 @@ class Home(QtWidgets.QWidget):
         self.search_bar.setStyleSheet("background-color: #3c3c3c; color: white;")
         self.search_bar.returnPressed.connect(self.load_url)
 
-        self.back_button = QtWidgets.QPushButton("<")
+        self.back_button = QtWidgets.QPushButton("^")
         self.back_button.setStyleSheet("background-color: #3c3c3c; color: white;")
 
         self.refresh_button = QtWidgets.QPushButton("↻")
